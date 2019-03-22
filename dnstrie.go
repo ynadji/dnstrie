@@ -15,6 +15,10 @@ type DomainTrie struct {
 
 type DomainTrieSlice []*DomainTrie
 
+func (root *DomainTrie) Empty() bool {
+	return root.label == "" && root.others == nil && !root.end
+}
+
 func (root *DomainTrie) ExactMatch(domain string) bool {
 	reversedLabels := reverseLabelSlice(domain)
 	curr := root
