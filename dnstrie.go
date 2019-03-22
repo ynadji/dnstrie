@@ -10,15 +10,48 @@ import (
 type DomainTrie struct {
 	label  string
 	others DomainTrieSlice
+	end    bool
 }
 
-type DomainTrieSlice []DomainTrie
+type DomainTrieSlice []*DomainTrie
 
-func reverse(tldPartsCopy []string) {
-	for i := len(tldPartsCopy)/2 - 1; i >= 0; i-- {
-		opp := len(tldPartsCopy) - 1 - i
-		tldPartsCopy[i], tldPartsCopy[opp] = tldPartsCopy[opp], tldPartsCopy[i]
+func (root *DomainTrie) ExactMatch(domain string) bool {
+	reversedLabels := reverseLabelSlice(domain)
+	curr := root
+	for _, label := range reversedLabels {
+		node := findNode(label, curr.others)
+		if node == nil {
+			return false
+		}
+		curr = node
 	}
+	return curr.end
+}
+
+func (root *DomainTrie) WildcardMatch(domain string) bool {
+	reversedLabels := reverseLabelSlice(domain)
+	curr := root
+	for _, label := range reversedLabels {
+		node := findNode("*", curr.others)
+		if node != nil {
+			return true
+		}
+		node = findNode(label, curr.others)
+		if node == nil {
+			return false
+		}
+		curr = node
+	}
+	return curr.end
+}
+
+func findNode(label string, others DomainTrieSlice) *DomainTrie {
+	for _, trie := range others {
+		if trie.label == label {
+			return trie
+		}
+	}
+	return nil
 }
 
 func checkAndRemoveWildcard(domain string) (string, bool) {
@@ -52,5 +85,26 @@ func reverseLabelSlice(domain string) []string {
 	return reversedLabels
 }
 
-func buildTrie(domains []string) {
+func MakeTrie(domains []string) *DomainTrie {
+	root := &DomainTrie{label: "."}
+
+	for _, d := range domains {
+		reversedLabels := reverseLabelSlice(d)
+		if reversedLabels == nil {
+			continue
+		}
+
+		curr := root
+		for _, label := range reversedLabels {
+			node := findNode(label, curr.others)
+			if node == nil {
+				node = &DomainTrie{label, DomainTrieSlice{}, false}
+				curr.others = append(curr.others, node)
+			}
+			curr = node
+		}
+		curr.end = true
+	}
+
+	return root
 }
