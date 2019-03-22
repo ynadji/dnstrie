@@ -10,6 +10,28 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestCheckAndRemoveWildcard(t *testing.T) {
+	type testCase struct {
+		domain       string
+		domainParsed string
+		hasWildcard  bool
+	}
+
+	testCases := []testCase{
+		testCase{"*.google.com", "google.com", true},
+		testCase{"google.com", "google.com", false},
+		testCase{"foo.*.google.com", "foo.*.google.com", false},
+		testCase{"*google.com", "*google.com", false},
+	}
+
+	for _, tc := range testCases {
+		parsed, wild := checkAndRemoveWildcard(tc.domain)
+		if parsed != tc.domainParsed || wild != tc.hasWildcard {
+			t.Fatalf("Failed with %+v. Got %v, %v.", tc, parsed, wild)
+		}
+	}
+}
+
 func TestReverseLabelSlice(t *testing.T) {
 	type testCase struct {
 		domain         string
@@ -24,6 +46,7 @@ func TestReverseLabelSlice(t *testing.T) {
 		testCase{"foo.com.gza.com", []string{"com", "gza", "com", "foo"}},
 		testCase{"com", []string{"com"}},
 		testCase{"", nil},
+		testCase{"*.foo.com", []string{"com", "foo", "*"}},
 	}
 
 	for _, tc := range testCases {

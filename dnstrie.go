@@ -21,8 +21,20 @@ func reverse(tldPartsCopy []string) {
 	}
 }
 
+func checkAndRemoveWildcard(domain string) (string, bool) {
+	if len(domain) < 2 {
+		return domain, false
+	}
+	if domain[0] == '*' && domain[1] == '.' {
+		return domain[2:], true
+	} else {
+		return domain, false
+	}
+}
+
 func reverseLabelSlice(domain string) []string {
 	var reversedLabels []string
+	domain, wildcarded := checkAndRemoveWildcard(domain)
 	_, icann := publicsuffix.PublicSuffix(domain)
 	if !govalidator.IsDNSName(domain) || !icann {
 		return nil
@@ -31,6 +43,10 @@ func reverseLabelSlice(domain string) []string {
 
 	for i := len(labels) - 1; i >= 0; i-- {
 		reversedLabels = append(reversedLabels, labels[i])
+	}
+
+	if wildcarded {
+		reversedLabels = append(reversedLabels, "*")
 	}
 
 	return reversedLabels
