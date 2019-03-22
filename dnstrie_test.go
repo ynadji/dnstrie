@@ -99,12 +99,19 @@ func TestExactMatch(t *testing.T) {
 		domain string
 		match  bool
 	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org"})
+	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us"})
 
 	testCases := []testCase{
 		testCase{"www.google.org", true},
 		testCase{"www.google.com", false},
 		testCase{"google.com", false},
+		testCase{"google.biz", false},
+		testCase{"foo.google.biz", false},
+		testCase{"bar.foo.google.biz", false},
+		testCase{"notarealdomain", false},
+		testCase{"foo.nadji.us", false},
+		testCase{"nadji.us", false},
+		testCase{"*.biz", false},
 	}
 	for _, tc := range testCases {
 		actual := root.ExactMatch(tc.domain)
@@ -119,12 +126,18 @@ func TestWildcardMatch(t *testing.T) {
 		domain string
 		match  bool
 	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org"})
+	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us"})
 
 	testCases := []testCase{
 		testCase{"www.google.org", true},
 		testCase{"www.google.com", true},
 		testCase{"google.com", false},
+		testCase{"google.biz", true},
+		testCase{"foo.google.biz", true},
+		testCase{"bar.foo.google.biz", true},
+		testCase{"notarealdomain", false},
+		testCase{"foo.nadji.us", false},
+		testCase{"nadji.us", false},
 	}
 	for _, tc := range testCases {
 		actual := root.WildcardMatch(tc.domain)

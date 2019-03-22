@@ -20,6 +20,9 @@ func (root *DomainTrie) Empty() bool {
 }
 
 func (root *DomainTrie) ExactMatch(domain string) bool {
+	if !govalidator.IsDNSName(domain) {
+		return false
+	}
 	reversedLabels := reverseLabelSlice(domain)
 	curr := root
 	for _, label := range reversedLabels {
