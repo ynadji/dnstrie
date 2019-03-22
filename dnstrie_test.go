@@ -138,6 +138,7 @@ func TestWildcardMatch(t *testing.T) {
 		testCase{"notarealdomain", false},
 		testCase{"foo.nadji.us", false},
 		testCase{"nadji.us", false},
+		testCase{"*.biz", false},
 	}
 	for _, tc := range testCases {
 		actual := root.WildcardMatch(tc.domain)
