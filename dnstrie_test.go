@@ -18,7 +18,7 @@ func TestReverseLabelSlice(t *testing.T) {
 
 	testCases := []testCase{
 		testCase{"www.google.com", []string{"com", "google", "www"}},
-		testCase{"www.google.co.uk", []string{"co.uk", "google", "www"}},
+		testCase{"www.google.co.uk", []string{"uk", "co", "google", "www"}},
 		testCase{"not.a.real.domain.asdashfkjah", nil},
 		testCase{"not.a.real.!@#$.com", nil},
 		testCase{"foo.com.gza.com", []string{"com", "gza", "com", "foo"}},

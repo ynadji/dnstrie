@@ -1,7 +1,6 @@
 package dnstrie
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
@@ -24,31 +23,13 @@ func reverse(tldPartsCopy []string) {
 
 func reverseLabelSlice(domain string) []string {
 	var reversedLabels []string
-	etld, icann := publicsuffix.PublicSuffix(domain)
+	_, icann := publicsuffix.PublicSuffix(domain)
 	if !govalidator.IsDNSName(domain) || !icann {
 		return nil
 	}
 	labels := strings.Split(domain, ".")
-	foundTld := false
-	tldParts := []string{}
 
 	for i := len(labels) - 1; i >= 0; i-- {
-		// This may be excessive. Surely people would want to just say
-		// *.uk, right?  Well it was fun anyway. Unsure if it's worth
-		// keeping this in now that I think about it. Go to bed.
-		if !foundTld {
-			tldParts = append(tldParts, labels[i])
-			tldPartsCopy := make([]string, len(tldParts))
-			copy(tldPartsCopy, tldParts)
-			reverse(tldPartsCopy)
-			possibleEtld := strings.Join(tldPartsCopy, ".")
-			if possibleEtld == etld {
-				foundTld = true
-				labels[i] = possibleEtld
-			} else {
-				continue
-			}
-		}
 		reversedLabels = append(reversedLabels, labels[i])
 	}
 
