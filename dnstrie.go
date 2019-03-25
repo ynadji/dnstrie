@@ -1,10 +1,11 @@
 package dnstrie
 
 import (
+	//"fmt"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"golang.org/x/net/publicsuffix"
+	//"golang.org/x/net/publicsuffix"
 )
 
 type DomainTrie struct {
@@ -78,8 +79,10 @@ func checkAndRemoveWildcard(domain string) (string, bool) {
 func reverseLabelSlice(domain string) []string {
 	var reversedLabels []string
 	domain, wildcarded := checkAndRemoveWildcard(domain)
-	_, icann := publicsuffix.PublicSuffix(domain)
-	if !govalidator.IsDNSName(domain) || !icann {
+	//e2ld, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	//suffix, icann := publicsuffix.PublicSuffix(domain)
+	//fmt.Printf("domain: %v, suffix: %v, e2ld: %v, icann: %v, err: %v\n", domain, suffix, e2ld, icann, err)
+	if !govalidator.IsDNSName(domain) {
 		return nil
 	}
 	labels := strings.Split(domain, ".")
