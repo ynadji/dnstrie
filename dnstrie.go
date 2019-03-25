@@ -1,11 +1,10 @@
 package dnstrie
 
 import (
-	//"fmt"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	//"golang.org/x/net/publicsuffix"
+	"github.com/ynadji/net/publicsuffix"
 )
 
 type DomainTrie struct {
@@ -21,7 +20,7 @@ func (root *DomainTrie) Empty() bool {
 }
 
 func (root *DomainTrie) ExactMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) {
+	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
 		return false
 	}
 	reversedLabels := reverseLabelSlice(domain)
@@ -37,7 +36,7 @@ func (root *DomainTrie) ExactMatch(domain string) bool {
 }
 
 func (root *DomainTrie) WildcardMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) {
+	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
 		return false
 	}
 	reversedLabels := reverseLabelSlice(domain)
@@ -79,10 +78,7 @@ func checkAndRemoveWildcard(domain string) (string, bool) {
 func reverseLabelSlice(domain string) []string {
 	var reversedLabels []string
 	domain, wildcarded := checkAndRemoveWildcard(domain)
-	//e2ld, err := publicsuffix.EffectiveTLDPlusOne(domain)
-	//suffix, icann := publicsuffix.PublicSuffix(domain)
-	//fmt.Printf("domain: %v, suffix: %v, e2ld: %v, icann: %v, err: %v\n", domain, suffix, e2ld, icann, err)
-	if !govalidator.IsDNSName(domain) {
+	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
 		return nil
 	}
 	labels := strings.Split(domain, ".")
