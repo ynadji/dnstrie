@@ -28,3 +28,27 @@ Flags:
   --matchFile string   File of domain matches, one per line
   --wildcard           Accept wildcard matches
 ```
+
+#### Examples
+```
+$ echo "eff.org
+random.foo.org
+notareal.domain.test
+google.com
+mail.google.com
+mine.mail.google.com" \
+| dfilter --matchFile <(echo -e "*.org\ngoogle.com\n*.mail.google.com") --wildcard
+eff.org
+random.foo.org
+google.com
+mine.mail.google.com
+
+$ echo "eff.org
+random.foo.org
+notareal.domain.test
+google.com
+mail.google.com
+mine.mail.google.com" \
+| dfilter --matchFile <(echo -e "*.org\ngoogle.com\n*.mail.google.com")
+google.com
+```
