@@ -5,7 +5,9 @@ A simple trie for filtering DNS names. Includes a CLI interface in the binary
 
 ## Install
 
+```
 $ go get -u github.com/ynadji/dnstrie
+```
 
 ## dfilter
 
@@ -15,7 +17,9 @@ take in domains on `STDIN` and print those that match the filter to `STDOUT`.
 
 ### Install
 
+```
 $ go get -u github.com/ynadji/dnstrie/dfilter
+```
 
 ### Usage
 ```
