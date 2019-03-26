@@ -1,10 +1,25 @@
+// Package dnstrie creates a DNS-aware trie for fast filtering of domain names
+// based on exact matches and wildcarded zone cut matches against a slice of
+// matching criteria. For example, providing "*.org", "google.com", and
+// "*.mail.google.com" would construct a trie like:
+//
+// tree
+// +-- org
+//     +-- *
+// +-- com
+//     +-- google
+//         +-- mail
+//             +-- *
+// Where google.com and anything under but not including org, mail.google.com
+// match the tree (with `tree.WildcardMatch`) and only google.com would match
+// (with `tree.ExactMatch`).
 package dnstrie
 
 import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/ynadji/net/publicsuffix"
+	"github.com/ynadji/net/publicsuffix" // until changes are merged upstream
 )
 
 type DomainTrie struct {
@@ -15,10 +30,13 @@ type DomainTrie struct {
 
 type DomainTrieSlice []*DomainTrie
 
+// Empty returns true if nothing has been added to the trie and true otherwise.
 func (root *DomainTrie) Empty() bool {
 	return root.label == "" && root.others == nil && !root.end
 }
 
+// ExactMatch only matches against exactly fully qualified domain names and
+// ignores zone wildcards.
 func (root *DomainTrie) ExactMatch(domain string) bool {
 	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
 		return false
@@ -35,6 +53,8 @@ func (root *DomainTrie) ExactMatch(domain string) bool {
 	return curr.end
 }
 
+// WildcardMatch matches against exactly fully qualified domain names and zone
+// wildcards.
 func (root *DomainTrie) WildcardMatch(domain string) bool {
 	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
 		return false
@@ -94,6 +114,8 @@ func reverseLabelSlice(domain string) []string {
 	return reversedLabels
 }
 
+// MakeTrie returns the root of a trie given a slice of domain names. Invalid
+// domains and those that do not use known TLDs are ignored.
 func MakeTrie(domains []string) *DomainTrie {
 	root := &DomainTrie{label: "."}
 
