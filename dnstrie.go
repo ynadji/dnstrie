@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/ynadji/net/publicsuffix" // until changes are merged upstream
+	"golang.org/x/net/publicsuffix"
 )
 
 type DomainTrie struct {
@@ -30,6 +30,11 @@ type DomainTrie struct {
 
 type DomainTrieSlice []*DomainTrie
 
+func hasListedSuffix(domain string) bool {
+	ps, icann := publicsuffix.PublicSuffix(domain)
+	return icann || (strings.IndexByte(ps, '.') >= 0)
+}
+
 // Empty returns true if nothing has been added to the trie and true otherwise.
 func (root *DomainTrie) Empty() bool {
 	return root.label == "" && root.others == nil && !root.end
@@ -38,7 +43,7 @@ func (root *DomainTrie) Empty() bool {
 // ExactMatch only matches against exactly fully qualified domain names and
 // ignores zone wildcards.
 func (root *DomainTrie) ExactMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
+	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
 		return false
 	}
 	reversedLabels := reverseLabelSlice(domain)
@@ -56,7 +61,7 @@ func (root *DomainTrie) ExactMatch(domain string) bool {
 // WildcardMatch matches against exactly fully qualified domain names and zone
 // wildcards.
 func (root *DomainTrie) WildcardMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
+	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
 		return false
 	}
 	reversedLabels := reverseLabelSlice(domain)
@@ -98,7 +103,7 @@ func checkAndRemoveWildcard(domain string) (string, bool) {
 func reverseLabelSlice(domain string) []string {
 	var reversedLabels []string
 	domain, wildcarded := checkAndRemoveWildcard(domain)
-	if !govalidator.IsDNSName(domain) || !publicsuffix.HasListedSuffix(domain) {
+	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
 		return nil
 	}
 	labels := strings.Split(domain, ".")
