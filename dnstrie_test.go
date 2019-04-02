@@ -159,4 +159,8 @@ func TestEmpty(t *testing.T) {
 	if !root.Empty() {
 		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
 	}
+	root = MakeTrie([]string{"google.com"})
+	if root.Empty() {
+		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+	}
 }
