@@ -164,3 +164,29 @@ func TestEmpty(t *testing.T) {
 		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
 	}
 }
+
+func TestHasListedSuffix(t *testing.T) {
+	var hasListedSuffixTestCases = []struct {
+		domain string
+		want   bool
+	}{
+		{"foo.com", true},
+		{"test", false},
+		{"com", true},
+		{"foo.test", false}, // Reserved TLDs see https://tools.ietf.org/html/rfc2606#page-2
+		{"foo.example", false},
+		{"foo.invalid", false},
+		{"foo.localhost", false},
+		{"example", false},
+		{"invalid", false},
+		{"localhost", false},
+		{"foo.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false}, // too long, can never be valid TLD
+	}
+
+	for _, tc := range hasListedSuffixTestCases {
+		got := hasListedSuffix(tc.domain)
+		if got != tc.want {
+			t.Errorf("%q: got %v, want %v", tc.domain, got, tc.want)
+		}
+	}
+}
