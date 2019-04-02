@@ -1,34 +1,30 @@
 package dnstrie
 
 import (
-	"os"
 	"reflect"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
-
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
-}
 
 func TestCheckAndRemoveWildcard(t *testing.T) {
 	type testCase struct {
 		domain       string
 		domainParsed string
-		hasWildcard  bool
+		wildcard     string
 	}
 
 	testCases := []testCase{
-		testCase{"*.google.com", "google.com", true},
-		testCase{"google.com", "google.com", false},
-		testCase{"foo.*.google.com", "foo.*.google.com", false},
-		testCase{"*google.com", "*google.com", false},
+		testCase{"*.google.com", "google.com", "*"},
+		testCase{"+.google.com", "google.com", "+"},
+		testCase{"google.com", "google.com", ""},
+		testCase{"foo.*.google.com", "foo.*.google.com", ""},
+		testCase{"foo.+.google.com", "foo.+.google.com", ""},
+		testCase{"*google.com", "*google.com", ""},
+		testCase{"+google.com", "+google.com", ""},
 	}
 
 	for _, tc := range testCases {
 		parsed, wild := checkAndRemoveWildcard(tc.domain)
-		if parsed != tc.domainParsed || wild != tc.hasWildcard {
+		if parsed != tc.domainParsed || wild != tc.wildcard {
 			t.Fatalf("Failed with %+v. Got %v, %v.", tc, parsed, wild)
 		}
 	}
@@ -43,16 +39,15 @@ func TestReverseLabelSlice(t *testing.T) {
 	testCases := []testCase{
 		testCase{"www.google.com", []string{"com", "google", "www"}},
 		testCase{"www.google.co.uk", []string{"uk", "co", "google", "www"}},
-		testCase{"not.a.real.domain.asdashfkjah", nil},
-		testCase{"not.a.real.!@#$.com", nil},
+		testCase{"not.a.real.domain.asdashfkjah", []string{"asdashfkjah", "domain", "real", "a", "not"}},
 		testCase{"foo.com.gza.com", []string{"com", "gza", "com", "foo"}},
 		testCase{"com", []string{"com"}},
-		testCase{"", nil},
+		testCase{"", []string{""}},
 		testCase{"*.foo.com", []string{"com", "foo", "*"}},
 	}
 
 	for _, tc := range testCases {
-		reversedLabels := reverseLabelSlice(tc.domain)
+		reversedLabels, _ := reverseLabelSlice(tc.domain)
 		if !reflect.DeepEqual(reversedLabels, tc.reversedLabels) {
 			t.Fatalf("Failed to reverse labels. Got %+v expected %+v.", reversedLabels, tc.reversedLabels)
 		}
@@ -68,15 +63,15 @@ func TestMakeTrie(t *testing.T) {
 	testCases := []testCase{
 		{[]string{"www.google.com", "*.google.com"}, &DomainTrie{
 			label: ".",
-			others: DomainTrieSlice{
+			others: domainTrieSlice{
 				&DomainTrie{
 					label: "com",
-					others: DomainTrieSlice{
+					others: domainTrieSlice{
 						&DomainTrie{
 							label: "google",
-							others: DomainTrieSlice{
-								&DomainTrie{"www", DomainTrieSlice{}, true},
-								&DomainTrie{"*", DomainTrieSlice{}, true},
+							others: domainTrieSlice{
+								&DomainTrie{"www", domainTrieSlice{}, true},
+								&DomainTrie{"*", domainTrieSlice{}, true},
 							},
 						},
 					},
@@ -87,47 +82,26 @@ func TestMakeTrie(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		root := MakeTrie(tc.domains)
+		root, _ := MakeTrie(tc.domains)
 		if !reflect.DeepEqual(root, tc.root) {
-			t.Fatalf("Failed to MakeTrie. Got:\n%+v\nExpected:\n%+v\n", spew.Sdump(root), spew.Sdump(tc.root))
+			t.Fatalf("Failed to MakeTrie. Got:\n%+v\nExpected:\n%+v\n", root, tc.root)
 		}
 	}
 }
 
-func TestExactMatch(t *testing.T) {
+func TestMatch(t *testing.T) {
 	type testCase struct {
 		domain string
 		match  bool
 	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
-
-	testCases := []testCase{
-		testCase{"www.google.org", true},
-		testCase{"www.google.com", false},
-		testCase{"google.com", false},
-		testCase{"google.biz", false},
-		testCase{"foo.google.biz", false},
-		testCase{"bar.foo.google.biz", false},
-		testCase{"notarealdomain", false},
-		testCase{"foo.nadji.us", false},
-		testCase{"nadji.us", false},
-		testCase{"*.biz", false},
-		testCase{"onizuka.homelinux.org", true},
+	root, err := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org", "+.yahoo.com"})
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
 	}
-	for _, tc := range testCases {
-		actual := root.ExactMatch(tc.domain)
-		if tc.match != actual {
-			t.Fatalf("Failed for %v (got %v expected %v)", tc.domain, actual, tc.match)
-		}
+	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org", "+.yahoo.com"})
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
 	}
-}
-
-func TestWildcardMatch(t *testing.T) {
-	type testCase struct {
-		domain string
-		match  bool
-	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
 
 	testCases := []testCase{
 		testCase{"www.google.org", true},
@@ -139,13 +113,16 @@ func TestWildcardMatch(t *testing.T) {
 		testCase{"notarealdomain", false},
 		testCase{"foo.nadji.us", false},
 		testCase{"nadji.us", false},
-		testCase{"*.biz", false},
+		testCase{"*.biz", true},
 		testCase{"onizuka.homelinux.org", true},
+		testCase{"www.yahoo.com", true},
+		testCase{"yahoo.com", true},
+		testCase{"lots.of.children.yahoo.com", true},
 	}
 	for _, tc := range testCases {
-		actual := root.WildcardMatch(tc.domain)
+		actual := root.Match(tc.domain)
 		if tc.match != actual {
-			t.Fatalf("Failed for %v (got %v expected %v)", tc.domain, actual, tc.match)
+			t.Fatalf("Failed for %v (got %v expected %v): tree %+v", tc.domain, actual, tc.match, root)
 		}
 	}
 }
@@ -153,14 +130,14 @@ func TestWildcardMatch(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	root := &DomainTrie{}
 	if !root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
-	root = MakeTrie([]string{})
+	root, _ = MakeTrie([]string{})
 	if !root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
-	root = MakeTrie([]string{"google.com"})
+	root, _ = MakeTrie([]string{"google.com"})
 	if root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
 }
