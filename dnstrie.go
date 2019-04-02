@@ -37,7 +37,7 @@ func hasListedSuffix(domain string) bool {
 
 // Empty returns true if nothing has been added to the trie and true otherwise.
 func (root *DomainTrie) Empty() bool {
-	return root.label == "" && root.others == nil && !root.end
+	return root.others == nil && !root.end
 }
 
 // ExactMatch only matches against exactly fully qualified domain names and

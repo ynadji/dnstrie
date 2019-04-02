@@ -149,3 +149,14 @@ func TestWildcardMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestEmpty(t *testing.T) {
+	root := &DomainTrie{}
+	if !root.Empty() {
+		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+	}
+	root = MakeTrie([]string{})
+	if !root.Empty() {
+		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+	}
+}
