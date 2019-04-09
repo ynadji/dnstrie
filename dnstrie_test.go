@@ -1,16 +1,11 @@
 package dnstrie
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 )
-
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
-}
 
 func TestCheckAndRemoveWildcard(t *testing.T) {
 	type testCase struct {
@@ -52,7 +47,7 @@ func TestReverseLabelSlice(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		reversedLabels := reverseLabelSlice(tc.domain)
+		reversedLabels, _ := reverseLabelSlice(tc.domain)
 		if !reflect.DeepEqual(reversedLabels, tc.reversedLabels) {
 			t.Fatalf("Failed to reverse labels. Got %+v expected %+v.", reversedLabels, tc.reversedLabels)
 		}
@@ -68,15 +63,15 @@ func TestMakeTrie(t *testing.T) {
 	testCases := []testCase{
 		{[]string{"www.google.com", "*.google.com"}, &DomainTrie{
 			label: ".",
-			others: DomainTrieSlice{
+			others: domainTrieSlice{
 				&DomainTrie{
 					label: "com",
-					others: DomainTrieSlice{
+					others: domainTrieSlice{
 						&DomainTrie{
 							label: "google",
-							others: DomainTrieSlice{
-								&DomainTrie{"www", DomainTrieSlice{}, true},
-								&DomainTrie{"*", DomainTrieSlice{}, true},
+							others: domainTrieSlice{
+								&DomainTrie{"www", domainTrieSlice{}, true},
+								&DomainTrie{"*", domainTrieSlice{}, true},
 							},
 						},
 					},
@@ -87,7 +82,7 @@ func TestMakeTrie(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		root := MakeTrie(tc.domains)
+		root, _ := MakeTrie(tc.domains)
 		if !reflect.DeepEqual(root, tc.root) {
 			t.Fatalf("Failed to MakeTrie. Got:\n%+v\nExpected:\n%+v\n", spew.Sdump(root), spew.Sdump(tc.root))
 		}
@@ -99,7 +94,14 @@ func TestExactMatch(t *testing.T) {
 		domain string
 		match  bool
 	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
+	root, err := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
+	if err == nil {
+		t.Fatalf("Should fail on bad domains")
+	}
+	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org"})
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
+	}
 
 	testCases := []testCase{
 		testCase{"www.google.org", true},
@@ -127,7 +129,14 @@ func TestWildcardMatch(t *testing.T) {
 		domain string
 		match  bool
 	}
-	root := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
+	root, err := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
+	if err == nil {
+		t.Fatalf("Should fail on bad domains")
+	}
+	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org"})
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
+	}
 
 	testCases := []testCase{
 		testCase{"www.google.org", true},
@@ -155,38 +164,12 @@ func TestEmpty(t *testing.T) {
 	if !root.Empty() {
 		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
 	}
-	root = MakeTrie([]string{})
+	root, _ = MakeTrie([]string{})
 	if !root.Empty() {
 		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
 	}
-	root = MakeTrie([]string{"google.com"})
+	root, _ = MakeTrie([]string{"google.com"})
 	if root.Empty() {
 		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
-	}
-}
-
-func TestHasListedSuffix(t *testing.T) {
-	var hasListedSuffixTestCases = []struct {
-		domain string
-		want   bool
-	}{
-		{"foo.com", true},
-		{"test", false},
-		{"com", true},
-		{"foo.test", false}, // Reserved TLDs see https://tools.ietf.org/html/rfc2606#page-2
-		{"foo.example", false},
-		{"foo.invalid", false},
-		{"foo.localhost", false},
-		{"example", false},
-		{"invalid", false},
-		{"localhost", false},
-		{"foo.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false}, // too long, can never be valid TLD
-	}
-
-	for _, tc := range hasListedSuffixTestCases {
-		got := hasListedSuffix(tc.domain)
-		if got != tc.want {
-			t.Errorf("%q: got %v, want %v", tc.domain, got, tc.want)
-		}
 	}
 }

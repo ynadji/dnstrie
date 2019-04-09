@@ -11,6 +11,10 @@ import (
 	"github.com/ynadji/dnstrie"
 )
 
+// TODO:
+// * Add way to ignore aggressive domain filtering (allow malformed or fake TLD domains)
+//
+
 var root *dnstrie.DomainTrie
 
 var flags struct {
@@ -24,7 +28,7 @@ func readDomains(matchFilePath string) []string {
 	}
 	reader := bufio.NewReader(f)
 	content, _ := ioutil.ReadAll(reader)
-	return strings.Split(string(content), "\n")
+	return strings.Split(strings.TrimSpace(string(content)), "\n")
 }
 
 func run() error {
@@ -35,7 +39,10 @@ func run() error {
 	}
 
 	domains := readDomains(flags.matchFile)
-	root = dnstrie.MakeTrie(domains)
+	root, err := dnstrie.MakeTrie(domains)
+	if err != nil {
+		return fmt.Errorf("Failed to make trie: %v", err)
+	}
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		domain := scanner.Text()

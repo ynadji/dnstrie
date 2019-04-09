@@ -16,24 +16,24 @@
 package dnstrie
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
-	"golang.org/x/net/publicsuffix"
+	"github.com/ynadji/dnstrie/dns"
 )
 
+// DomainTrie is a struct for the recursive DNS-aware trie data structure. The
+// three members represent the current label ("." for the root), the list of
+// children and if this label can be considered an ending state for the tree (to
+// identify that there is an exact domain match at this point). This should not
+// be used directly and should instead be created using `dnstrie.MakeTrie`.
 type DomainTrie struct {
 	label  string
-	others DomainTrieSlice
+	others domainTrieSlice
 	end    bool
 }
 
-type DomainTrieSlice []*DomainTrie
-
-func hasListedSuffix(domain string) bool {
-	ps, icann := publicsuffix.PublicSuffix(domain)
-	return icann || (strings.IndexByte(ps, '.') >= 0)
-}
+type domainTrieSlice []*DomainTrie
 
 // Empty returns true if nothing has been added to the trie and true otherwise.
 func (root *DomainTrie) Empty() bool {
@@ -43,10 +43,13 @@ func (root *DomainTrie) Empty() bool {
 // ExactMatch only matches against exactly fully qualified domain names and
 // ignores zone wildcards.
 func (root *DomainTrie) ExactMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
+	if !dns.IsPossibleDomain(domain) {
 		return false
 	}
-	reversedLabels := reverseLabelSlice(domain)
+	reversedLabels, err := reverseLabelSlice(domain)
+	if err != nil {
+		return false
+	}
 	curr := root
 	for _, label := range reversedLabels {
 		node := findNode(label, curr.others)
@@ -59,12 +62,17 @@ func (root *DomainTrie) ExactMatch(domain string) bool {
 }
 
 // WildcardMatch matches against exactly fully qualified domain names and zone
-// wildcards.
+// wildcards. Note that `domain` _should not_ contain the '*' character. If the
+// trie was constructed with wildcarded matches, this will accept them unlike
+// `ExactMatch`.
 func (root *DomainTrie) WildcardMatch(domain string) bool {
-	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
+	if !dns.IsPossibleDomain(domain) {
 		return false
 	}
-	reversedLabels := reverseLabelSlice(domain)
+	reversedLabels, err := reverseLabelSlice(domain)
+	if err != nil {
+		return false
+	}
 	curr := root
 	for _, label := range reversedLabels {
 		node := findNode("*", curr.others)
@@ -80,7 +88,7 @@ func (root *DomainTrie) WildcardMatch(domain string) bool {
 	return curr.end
 }
 
-func findNode(label string, others DomainTrieSlice) *DomainTrie {
+func findNode(label string, others domainTrieSlice) *DomainTrie {
 	for _, trie := range others {
 		if trie.label == label {
 			return trie
@@ -95,16 +103,16 @@ func checkAndRemoveWildcard(domain string) (string, bool) {
 	}
 	if domain[0] == '*' && domain[1] == '.' {
 		return domain[2:], true
-	} else {
-		return domain, false
 	}
+
+	return domain, false
 }
 
-func reverseLabelSlice(domain string) []string {
+func reverseLabelSlice(domain string) ([]string, error) {
 	var reversedLabels []string
 	domain, wildcarded := checkAndRemoveWildcard(domain)
-	if !govalidator.IsDNSName(domain) || !hasListedSuffix(domain) {
-		return nil
+	if !dns.IsPossibleDomain(domain) {
+		return nil, fmt.Errorf("%s is not a valid domain", domain)
 	}
 	labels := strings.Split(domain, ".")
 
@@ -116,25 +124,27 @@ func reverseLabelSlice(domain string) []string {
 		reversedLabels = append(reversedLabels, "*")
 	}
 
-	return reversedLabels
+	return reversedLabels, nil
 }
 
 // MakeTrie returns the root of a trie given a slice of domain names. Invalid
-// domains and those that do not use known TLDs are ignored.
-func MakeTrie(domains []string) *DomainTrie {
+// domains and those that do not use known TLDs will fail to construct the
+// trie. Use tm-go-common/dns.Normalize to prepare domains received from
+// untrusted or unreliable sources.
+func MakeTrie(domains []string) (*DomainTrie, error) {
 	root := &DomainTrie{label: "."}
 
 	for _, d := range domains {
-		reversedLabels := reverseLabelSlice(d)
-		if reversedLabels == nil {
-			continue
+		reversedLabels, err := reverseLabelSlice(d)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to build DomainTrie: %v", err)
 		}
 
 		curr := root
 		for _, label := range reversedLabels {
 			node := findNode(label, curr.others)
 			if node == nil {
-				node = &DomainTrie{label, DomainTrieSlice{}, false}
+				node = &DomainTrie{label, domainTrieSlice{}, false}
 				curr.others = append(curr.others, node)
 			}
 			curr = node
@@ -142,5 +152,5 @@ func MakeTrie(domains []string) *DomainTrie {
 		curr.end = true
 	}
 
-	return root
+	return root, nil
 }
