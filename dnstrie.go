@@ -18,8 +18,6 @@ package dnstrie
 import (
 	"fmt"
 	"strings"
-
-	"github.com/ynadji/dnstrie/dns"
 )
 
 // DomainTrie is a struct for the recursive DNS-aware trie data structure. The
@@ -43,9 +41,6 @@ func (root *DomainTrie) Empty() bool {
 // ExactMatch only matches against exactly fully qualified domain names and
 // ignores zone wildcards.
 func (root *DomainTrie) ExactMatch(domain string) bool {
-	if !dns.IsPossibleDomain(domain) {
-		return false
-	}
 	reversedLabels, err := reverseLabelSlice(domain)
 	if err != nil {
 		return false
@@ -66,9 +61,6 @@ func (root *DomainTrie) ExactMatch(domain string) bool {
 // trie was constructed with wildcarded matches, this will accept them unlike
 // `ExactMatch`.
 func (root *DomainTrie) WildcardMatch(domain string) bool {
-	if !dns.IsPossibleDomain(domain) {
-		return false
-	}
 	reversedLabels, err := reverseLabelSlice(domain)
 	if err != nil {
 		return false
@@ -111,9 +103,6 @@ func checkAndRemoveWildcard(domain string) (string, bool) {
 func reverseLabelSlice(domain string) ([]string, error) {
 	var reversedLabels []string
 	domain, wildcarded := checkAndRemoveWildcard(domain)
-	if !dns.IsPossibleDomain(domain) {
-		return nil, fmt.Errorf("%s is not a valid domain", domain)
-	}
 	labels := strings.Split(domain, ".")
 
 	for i := len(labels) - 1; i >= 0; i-- {
@@ -129,8 +118,8 @@ func reverseLabelSlice(domain string) ([]string, error) {
 
 // MakeTrie returns the root of a trie given a slice of domain names. Invalid
 // domains and those that do not use known TLDs will fail to construct the
-// trie. Use tm-go-common/dns.Normalize to prepare domains received from
-// untrusted or unreliable sources.
+// trie. Use dns.Normalize to prepare domains received from untrusted or
+// unreliable sources.
 func MakeTrie(domains []string) (*DomainTrie, error) {
 	root := &DomainTrie{label: "."}
 
