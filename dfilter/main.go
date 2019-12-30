@@ -11,10 +11,6 @@ import (
 	"github.com/ynadji/dnstrie"
 )
 
-// TODO:
-// * Add way to ignore aggressive domain filtering (allow malformed or fake TLD domains)
-// * Add field-based filtering for CSV/TSV/etc.
-
 var root *dnstrie.DomainTrie
 
 var flags struct {
