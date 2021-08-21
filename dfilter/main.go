@@ -21,6 +21,7 @@ var flags struct {
 func readDomains(matchFilePath string) []string {
 	f, err := os.Open(matchFilePath)
 	if err != nil {
+		panic(fmt.Sprintf("Failed to read %s: %v", matchFilePath, err))
 	}
 	reader := bufio.NewReader(f)
 	content, _ := ioutil.ReadAll(reader)

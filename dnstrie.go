@@ -116,10 +116,9 @@ func reverseLabelSlice(domain string) ([]string, error) {
 	return reversedLabels, nil
 }
 
-// MakeTrie returns the root of a trie given a slice of domain names. Invalid
-// domains and those that do not use known TLDs will fail to construct the
-// trie. Use dns.Normalize to prepare domains received from untrusted or
-// unreliable sources.
+// MakeTrie returns the root of a trie given a slice of domain names.  Use
+// dns.Normalize to prepare domains received from untrusted or unreliable
+// sources.
 func MakeTrie(domains []string) (*DomainTrie, error) {
 	root := &DomainTrie{label: "."}
 

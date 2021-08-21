@@ -3,8 +3,6 @@ package dnstrie
 import (
 	"reflect"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestCheckAndRemoveWildcard(t *testing.T) {
@@ -38,11 +36,10 @@ func TestReverseLabelSlice(t *testing.T) {
 	testCases := []testCase{
 		testCase{"www.google.com", []string{"com", "google", "www"}},
 		testCase{"www.google.co.uk", []string{"uk", "co", "google", "www"}},
-		testCase{"not.a.real.domain.asdashfkjah", nil},
-		testCase{"not.a.real.!@#$.com", nil},
+		testCase{"not.a.real.domain.asdashfkjah", []string{"asdashfkjah", "domain", "real", "a", "not"}},
 		testCase{"foo.com.gza.com", []string{"com", "gza", "com", "foo"}},
 		testCase{"com", []string{"com"}},
-		testCase{"", nil},
+		testCase{"", []string{""}},
 		testCase{"*.foo.com", []string{"com", "foo", "*"}},
 	}
 
@@ -84,7 +81,7 @@ func TestMakeTrie(t *testing.T) {
 	for _, tc := range testCases {
 		root, _ := MakeTrie(tc.domains)
 		if !reflect.DeepEqual(root, tc.root) {
-			t.Fatalf("Failed to MakeTrie. Got:\n%+v\nExpected:\n%+v\n", spew.Sdump(root), spew.Sdump(tc.root))
+			t.Fatalf("Failed to MakeTrie. Got:\n%+v\nExpected:\n%+v\n", root, tc.root)
 		}
 	}
 }
@@ -95,8 +92,8 @@ func TestExactMatch(t *testing.T) {
 		match  bool
 	}
 	root, err := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
-	if err == nil {
-		t.Fatalf("Should fail on bad domains")
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
 	}
 	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org"})
 	if err != nil {
@@ -113,7 +110,7 @@ func TestExactMatch(t *testing.T) {
 		testCase{"notarealdomain", false},
 		testCase{"foo.nadji.us", false},
 		testCase{"nadji.us", false},
-		testCase{"*.biz", false},
+		testCase{"*.biz", true},
 		testCase{"onizuka.homelinux.org", true},
 	}
 	for _, tc := range testCases {
@@ -130,8 +127,8 @@ func TestWildcardMatch(t *testing.T) {
 		match  bool
 	}
 	root, err := MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "notarealdomain", "*nadji.us", "onizuka.homelinux.org"})
-	if err == nil {
-		t.Fatalf("Should fail on bad domains")
+	if err != nil {
+		t.Fatalf("Failed to MakeTrie: %v", err)
 	}
 	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org"})
 	if err != nil {
@@ -148,7 +145,7 @@ func TestWildcardMatch(t *testing.T) {
 		testCase{"notarealdomain", false},
 		testCase{"foo.nadji.us", false},
 		testCase{"nadji.us", false},
-		testCase{"*.biz", false},
+		testCase{"*.biz", true},
 		testCase{"onizuka.homelinux.org", true},
 	}
 	for _, tc := range testCases {
@@ -162,14 +159,14 @@ func TestWildcardMatch(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	root := &DomainTrie{}
 	if !root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
 	root, _ = MakeTrie([]string{})
 	if !root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
 	root, _ = MakeTrie([]string{"google.com"})
 	if root.Empty() {
-		t.Fatalf("Empty() failed for initialized trie: %+v", spew.Sdump(root))
+		t.Fatalf("Empty() failed for initialized trie: %+v", root)
 	}
 }
