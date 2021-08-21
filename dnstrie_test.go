@@ -61,7 +61,7 @@ func TestMakeTrie(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{[]string{"www.google.com", "*.google.com"}, &DomainTrie{
+		{[]string{"www.google.com", "+.google.com"}, &DomainTrie{
 			label: ".",
 			others: domainTrieSlice{
 				&DomainTrie{
@@ -71,7 +71,7 @@ func TestMakeTrie(t *testing.T) {
 							label: "google",
 							others: domainTrieSlice{
 								&DomainTrie{"www", domainTrieSlice{}, true},
-								&DomainTrie{"*", domainTrieSlice{}, true},
+								&DomainTrie{"+", domainTrieSlice{}, true},
 							},
 						},
 					},
@@ -98,7 +98,7 @@ func TestMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to MakeTrie: %v", err)
 	}
-	root, err = MakeTrie([]string{"*.google.com", "www.google.org", "*.biz", "onizuka.homelinux.org", "+.yahoo.com"})
+	root, err = MakeTrie([]string{"+.google.com", "www.google.org", "+.biz", "onizuka.homelinux.org", "*.yahoo.com"})
 	if err != nil {
 		t.Fatalf("Failed to MakeTrie: %v", err)
 	}

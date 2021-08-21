@@ -11,9 +11,11 @@ $ go get -u github.com/ynadji/dnstrie
 
 ## dfilter
 
-`dfilter` is a simple CLI tool for filtering domain names. Given a `--matchFile`
-of fully qualified domains and wildcarded zone cuts to match on, `dfilter` will
-take in domains on `STDIN` and print those that match the filter to `STDOUT`.
+`dfilter` is a simple CLI tool for filtering domain names. Given a file of of
+fully qualified domains and wildcarded zone cuts to match on, `dfilter` will
+take in domains on `STDIN` and print those that match the filter to
+`STDOUT`. Matches can be specified with a leading `*`, which includes the parent
+domain, or with a `+`, which only includes children. See the Example below.
 
 ### Install
 
@@ -23,36 +25,36 @@ $ go get -u github.com/ynadji/dnstrie/dfilter
 
 ### Usage
 ```
-$ dfilter -h
-Usage:
-  dfilter [flags]
+¡ dfilter -h
+NAME:
+   dfilter - cat domains.txt | dfilter ...
 
-Flags:
-  -h, --help           help for dfilter
-  --matchFile string   File of domain matches, one per line
-  --wildcard           Accept wildcard matches
+USAGE:
+   dfilter [global options] command [command options] [arguments...]
+
+COMMANDS:
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --matches value  Path to file of domain matches, one per line.
+   --help, -h       show help (default: false)
 ```
 
-#### Examples
+#### Example
 ```
 $ echo "eff.org
 random.foo.org
 notareal.domain.test
 google.com
 mail.google.com
-mine.mail.google.com" \
-| dfilter --matchFile <(echo -e "*.org\ngoogle.com\n*.mail.google.com") --wildcard
+mine.mail.google.com
+web.google.com
+foo.web.google.com" \
+| dfilter --matches <(echo -e "+.org\ngoogle.com\n+.mail.google.com\n*.web.google.com")
 eff.org
 random.foo.org
 google.com
 mine.mail.google.com
-
-$ echo "eff.org
-random.foo.org
-notareal.domain.test
-google.com
-mail.google.com
-mine.mail.google.com" \
-| dfilter --matchFile <(echo -e "*.org\ngoogle.com\n*.mail.google.com")
-google.com
+web.google.com
+foo.web.google.com
 ```

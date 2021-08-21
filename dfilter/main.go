@@ -7,16 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/influxdata/influxdb/kit/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/ynadji/dnstrie"
 )
 
 var root *dnstrie.DomainTrie
-
-var flags struct {
-	matchFile string
-	wildcard  bool
-}
 
 func readDomains(matchFilePath string) []string {
 	f, err := os.Open(matchFilePath)
@@ -28,14 +23,8 @@ func readDomains(matchFilePath string) []string {
 	return strings.Split(strings.TrimSpace(string(content)), "\n")
 }
 
-func run() error {
-	// TODO: prob just switch to straight github.com/spf13/cobra
-	if flags.matchFile == "" {
-		fmt.Fprintln(os.Stderr, "Must provide match file!")
-		os.Exit(2)
-	}
-
-	domains := readDomains(flags.matchFile)
+func run(c *cli.Context) error {
+	domains := readDomains(c.String("matches"))
 	root, err := dnstrie.MakeTrie(domains)
 	if err != nil {
 		return fmt.Errorf("Failed to make trie: %v", err)
@@ -56,19 +45,21 @@ func run() error {
 }
 
 func main() {
-	cmd := cli.NewCommand(&cli.Program{
-		Run:  run,
-		Name: "dfilter",
-		Opts: []cli.Opt{
-			{
-				DestP: &flags.matchFile,
-				Flag:  "matchFile",
-				Desc:  "File of domain matches, one per line",
-			},
-		},
-	})
+	app := &cli.App{
+		Name:   "dfilter",
+		Usage:  "cat domains.txt | dfilter ...",
+		Action: run,
+	}
 
-	if err := cmd.Execute(); err != nil {
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:     "matches",
+			Usage:    "Path to file of domain matches, one per line.",
+			Required: true,
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

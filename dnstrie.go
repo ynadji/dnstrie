@@ -1,7 +1,7 @@
 // Package dnstrie creates a DNS-aware trie for fast filtering of domain names
 // based on exact matches and wildcarded zone cut matches against a slice of
-// matching criteria. For example, providing "*.org", "google.com", and
-// "*.mail.google.com" would construct a trie like:
+// matching criteria. For example, providing "*.org", "google.com",
+// "*.mail.google.com", and "+.web.google.com" would construct a trie like:
 //
 // tree
 // +-- org
@@ -9,10 +9,11 @@
 // +-- com
 //     +-- google
 //         +-- mail
+//             +-- +
+//         +-- web
 //             +-- *
-// Where google.com and anything under but not including org, mail.google.com
-// match the tree (with `tree.WildcardMatch`) and only google.com would match
-// (with `tree.ExactMatch`).
+// Where google.com, web.google.com (and all its children) and anything under
+// but not including org, mail.google.com match the tree (with `tree.Match`).
 package dnstrie
 
 import (
@@ -47,7 +48,7 @@ func (root *DomainTrie) Match(domain string) bool {
 	}
 	curr := root
 	for _, label := range reversedLabels {
-		node := findNode("*", curr.others)
+		node := findNode("+", curr.others)
 		if node != nil {
 			return true
 		}
@@ -121,15 +122,15 @@ func MakeTrie(domains []string) (*DomainTrie, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to build DomainTrie: %v", err)
 		}
-		// If it was plus, we need to add it both without the wildcard
-		// for the exact match and with "*" for the normal wildcard
+		// If it was a star, we need to add it both without the wildcard
+		// for the exact match and with "+" for the normal wildcard
 		// match.
-		wasPlus := reversedLabels[length-1] == "+"
-		if wasPlus {
-			reversedLabels[length-1] = "*"
+		wasStar := reversedLabels[length-1] == "*"
+		if wasStar {
+			reversedLabels[length-1] = "+"
 		}
 		addReversedLabelsToTrie(root, reversedLabels)
-		if wasPlus {
+		if wasStar {
 			addReversedLabelsToTrie(root, reversedLabels[:length-1])
 		}
 	}
