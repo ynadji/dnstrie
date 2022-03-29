@@ -249,6 +249,10 @@ func TestValid(t *testing.T) {
 			domain: "underscores_are_fine_chars.com",
 			valid:  true,
 		},
+		testCase{
+			domain: "_are_fine_chars.com",
+			valid:  true,
+		},
 	}
 
 	for i, tc := range testCases {
