@@ -213,3 +213,48 @@ func TestNormalize(t *testing.T) {
 		}
 	}
 }
+
+func TestValid(t *testing.T) {
+	type testCase struct {
+		domain string
+		valid  bool
+	}
+
+	testCases := []testCase{
+		testCase{
+			domain: "google.com",
+			valid:  true,
+		},
+		testCase{
+			domain: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-too-long.com",
+			valid:  false,
+		},
+		testCase{
+			domain: "!@#$%^&*().com",
+			valid:  false,
+		},
+		testCase{
+			domain: "foo.bar.baz.biz.faketld",
+			valid:  true,
+		},
+		testCase{
+			domain: "cAsEsHoUlNdNoTmAtTeR.com",
+			valid:  true,
+		},
+		testCase{
+			domain: "-cantstartwithahyphentho.com",
+			valid:  false,
+		},
+		testCase{
+			domain: "underscores_are_fine_chars.com",
+			valid:  true,
+		},
+	}
+
+	for i, tc := range testCases {
+		got := Valid(tc.domain)
+		if tc.valid != got {
+			t.Fatalf("[#%d] got %v expected %v for Valid(%v)", i, got, tc.valid, tc.domain)
+		}
+	}
+}

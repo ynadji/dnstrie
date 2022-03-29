@@ -26,6 +26,16 @@ func Normalize(domain string) (string, error) {
 	return domain, nil
 }
 
+// Valid returns true if the domain passes govalidator's DNS check and
+// was parseable by IDNA.
+func Valid(domain string) bool {
+	domain, err := idna.ToASCII(strings.ToLower(strings.TrimSpace(domain)))
+	if err != nil {
+		return false
+	}
+	return govalidator.IsDNSName(domain)
+}
+
 // HasListedSuffix returns true if the domain has a TLD that appears on the
 // public suffix list and false otherwise. Converts to ASCII to ensure suffix
 // check succeeds but does no other normalization.
