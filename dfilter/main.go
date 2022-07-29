@@ -34,7 +34,9 @@ func run(c *cli.Context) error {
 		domain := scanner.Text()
 		matched := root.Match(domain)
 
-		if matched {
+		if matched && !c.Bool("complement") {
+			fmt.Printf("%v\n", domain)
+		} else if !matched && c.Bool("complement") {
 			fmt.Printf("%v\n", domain)
 		}
 	}
@@ -56,6 +58,11 @@ func main() {
 			Name:     "matches",
 			Usage:    "Path to file of domain matches, one per line.",
 			Required: true,
+		},
+		&cli.BoolFlag{
+			Name:    "complement",
+			Usage:   "Invert matches",
+			Aliases: []string{"c"},
 		},
 	}
 
